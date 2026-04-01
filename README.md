@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.1.0 — MVP Agentic Assistant
+# nano-claude v0.2.0 — Markdown Rendering
 
-**~900 lines of TypeScript, 12 files.**
+**~1,020 lines of TypeScript, 13 files.**
 
 ## Quick Start
 
@@ -13,13 +13,11 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v0)
+## What's New (vs v1)
 
-- **Agentic tool-use loop** — model calls tools, results feed back, repeat until done
-- **6 tools**: Bash, Read, Write, Edit, Glob, Grep
-- **System prompt** with git context
-- **Modular architecture** — split into 12 files
+- **`src/render.ts`** — Markdown-to-terminal renderer
+- **Two-pass rendering** — stream raw text first, then re-render with formatting
 
 ## What's Next
 
-**v2** adds terminal markdown rendering.
+**v3** adds a permission system.

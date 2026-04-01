@@ -24,7 +24,10 @@ import chalk from "chalk";
 import { createClient, streamMessage } from "./api.js";
 import { allTools } from "./tools/index.js";
 import { buildSystemPrompt } from "./prompt.js";
+import { renderMarkdown } from "./render.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
+
+const VERSION = "0.2.0";
 
 // ── Config ──
 
@@ -49,7 +52,7 @@ async function main() {
 
   console.log(
     chalk.bold.cyan("\n  nano-claude") +
-      chalk.dim(" v0.1.0") +
+      chalk.dim(` v${VERSION}`) +
       chalk.dim(`  (model: ${config.model})`)
   );
   console.log(chalk.dim("  Type your message. /help for commands, Ctrl+C to exit.\n"));
@@ -101,6 +104,8 @@ async function runConversationLoop(client: ReturnType<typeof createClient>) {
   const toolMap = new Map(allTools.map((t) => [t.name, t]));
 
   while (true) {
+    // Buffer streamed text for markdown rendering
+    let textBuffer = "";
     process.stdout.write(chalk.blue("\nAssistant: "));
 
     const response = await streamMessage(
@@ -108,9 +113,22 @@ async function runConversationLoop(client: ReturnType<typeof createClient>) {
       config,
       messages,
       allTools,
-      // onText: stream text to terminal
-      (delta) => process.stdout.write(delta),
+      (delta) => {
+        textBuffer += delta;
+        process.stdout.write(delta);
+      },
     );
+
+    // Re-render with markdown formatting if there was text output
+    if (textBuffer.trim()) {
+      // Move cursor up and clear the raw streamed text, replace with rendered
+      const rawLines = textBuffer.split("\n").length;
+      process.stdout.write("\r\x1b[K"); // clear current line
+      for (let i = 0; i < rawLines; i++) {
+        process.stdout.write("\x1b[A\x1b[K"); // move up + clear
+      }
+      console.log(chalk.blue("Assistant:\n") + renderMarkdown(textBuffer));
+    }
 
     totalInput += response.usage.input;
     totalOutput += response.usage.output;
@@ -183,11 +201,11 @@ function handleCommand(input: string) {
   switch (cmd) {
     case "/help":
       console.log(chalk.cyan("\nCommands:"));
-      console.log("  /help     Show this help");
-      console.log("  /cost     Show token usage");
-      console.log("  /clear    Clear conversation history");
-      console.log("  /compact  Summarize conversation to save context");
-      console.log("  /model    Show or change model");
+      console.log("  /help      Show this help");
+      console.log("  /cost      Show token usage");
+      console.log("  /clear     Clear conversation history");
+      console.log("  /compact   Summarize conversation to save context");
+      console.log("  /model     Show or change model");
       break;
 
     case "/cost":
