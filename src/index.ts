@@ -26,9 +26,10 @@ import { allTools } from "./tools/index.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { renderMarkdown } from "./render.js";
 import { classifyToolRisk, askPermission } from "./permissions.js";
+import { newSessionId, saveSession, loadSession, printSessionList } from "./session.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
 // ── Config ──
 
@@ -43,6 +44,7 @@ const config: Config = {
 const messages: Message[] = [];
 let totalInput = 0;
 let totalOutput = 0;
+let sessionId = newSessionId();
 
 // ── REPL ──
 
@@ -88,6 +90,9 @@ async function main() {
     } catch (err: any) {
       console.error(chalk.red(`\nError: ${err.message || err}`));
     }
+
+    // Auto-save session
+    saveSession(sessionId, messages, config.model, totalInput, totalOutput);
 
     console.log(); // blank line
     rl.prompt();
@@ -224,6 +229,8 @@ function handleCommand(input: string) {
       console.log("  /clear     Clear conversation history");
       console.log("  /compact   Summarize conversation to save context");
       console.log("  /model     Show or change model");
+      console.log("  /sessions  List saved sessions");
+      console.log("  /resume    Resume a saved session");
       break;
 
     case "/cost":
@@ -268,6 +275,31 @@ function handleCommand(input: string) {
       } else {
         console.log(chalk.cyan(`Current model: ${config.model}`));
       }
+      break;
+    }
+
+    case "/sessions":
+      printSessionList();
+      break;
+
+    case "/resume": {
+      const resumeId = input.slice("/resume".length).trim();
+      if (!resumeId) {
+        printSessionList();
+        break;
+      }
+      const session = loadSession(resumeId);
+      if (!session) {
+        console.log(chalk.red(`Session not found: ${resumeId}`));
+        break;
+      }
+      messages.length = 0;
+      messages.push(...session.messages);
+      totalInput = session.totalInput;
+      totalOutput = session.totalOutput;
+      sessionId = session.id;
+      config.model = session.model;
+      console.log(chalk.green(`Resumed session ${resumeId} (${session.messageCount} messages)`));
       break;
     }
 

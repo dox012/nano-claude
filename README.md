@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.3.0 — Permission System
+# nano-claude v0.4.0 — Session Persistence
 
-**~1,140 lines of TypeScript, 14 files.**
+**~1,320 lines of TypeScript, 15 files.**
 
 ## Quick Start
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v2)
+## What's New (vs v3)
 
-- **`src/permissions.ts`** — Tool risk classification + confirmation
-- **Three risk levels**: safe, write, destructive
-- **Regex-based bash command classification**
+- **`src/session.ts`** — Session save/load/list
+- Auto-save after every turn
+- **`/sessions`** and **`/resume`** commands
 
 ## What's Next
 
-**v4** adds session persistence.
+**v5** adds smart conversation compaction.
