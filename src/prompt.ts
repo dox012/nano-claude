@@ -1,7 +1,10 @@
-import { getGitContext } from "./context.js";
+import { getGitContext, getClaudeMd } from "./context.js";
+import { loadAllMemories } from "./memory.js";
 
 export function buildSystemPrompt(): string {
   const gitContext = getGitContext();
+  const claudeMd = getClaudeMd();
+  const memories = loadAllMemories();
 
   const parts: string[] = [
     CORE_PROMPT,
@@ -14,6 +17,14 @@ export function buildSystemPrompt(): string {
     "# Git Status",
     gitContext,
   ];
+
+  if (claudeMd) {
+    parts.push("", "# Project Instructions (CLAUDE.md)", claudeMd);
+  }
+
+  if (memories) {
+    parts.push("", "# Persistent Memory", "The user has saved these notes from previous sessions:", memories);
+  }
 
   return parts.join("\n");
 }

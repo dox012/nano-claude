@@ -25,13 +25,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient, streamMessage } from "./api.js";
 import { allTools } from "./tools/index.js";
 import { buildSystemPrompt } from "./prompt.js";
+// buildSystemPrompt is also used in handleCommand for memory updates
 import { renderMarkdown } from "./render.js";
 import { classifyToolRisk, askPermission } from "./permissions.js";
 import { newSessionId, saveSession, loadSession, printSessionList } from "./session.js";
 import { smartCompact, shouldAutoCompact, estimateTokens } from "./compact.js";
+import { saveMemory, deleteMemory, printMemories } from "./memory.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 // ── Config ──
 
@@ -246,6 +248,9 @@ async function handleCommand(input: string, client: Anthropic) {
       console.log("  /model     Show or change model");
       console.log("  /sessions  List saved sessions");
       console.log("  /resume    Resume a saved session");
+      console.log("  /remember  Save a memory (/remember key: content)");
+      console.log("  /forget    Delete a memory (/forget key)");
+      console.log("  /memory    List saved memories");
       break;
 
     case "/cost":
@@ -288,6 +293,41 @@ async function handleCommand(input: string, client: Anthropic) {
       }
       break;
     }
+
+    case "/remember": {
+      const body = input.slice("/remember".length).trim();
+      const colonIdx = body.indexOf(":");
+      if (!body || colonIdx === -1) {
+        console.log(chalk.dim("  Usage: /remember key: content"));
+        break;
+      }
+      const key = body.slice(0, colonIdx).trim();
+      const content = body.slice(colonIdx + 1).trim();
+      saveMemory(key, content);
+      console.log(chalk.green(`  Saved memory: ${key}`));
+      // Rebuild system prompt with new memory
+      config.systemPrompt = buildSystemPrompt();
+      break;
+    }
+
+    case "/forget": {
+      const key = input.slice("/forget".length).trim();
+      if (!key) {
+        console.log(chalk.dim("  Usage: /forget key"));
+        break;
+      }
+      if (deleteMemory(key)) {
+        console.log(chalk.yellow(`  Deleted memory: ${key}`));
+        config.systemPrompt = buildSystemPrompt();
+      } else {
+        console.log(chalk.red(`  Memory not found: ${key}`));
+      }
+      break;
+    }
+
+    case "/memory":
+      printMemories();
+      break;
 
     case "/sessions":
       printSessionList();
