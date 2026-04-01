@@ -1,8 +1,8 @@
 [English](./README.md) | **中文**
 
-# nano-claude v0.7.0 — 子代理
+# nano-claude v8 — CLI 参数
 
-**约 1,780 行 TypeScript，18 个文件。**
+**约 2,000 行 TypeScript，19 个文件。**
 
 ## 快速开始
 
@@ -13,12 +13,8 @@ cp .env.example .env
 npm run dev
 ```
 
-## 本版本新增（相比 v6）
+## 本版本新增（相比 v7）
 
-- **`src/tools/agent.ts`** — 子代理生成
-- 隔离的只读子对话
-- 每个子代理最多 20 轮
-
-## 下一步
-
-**v8** 添加 CLI 参数。
+- **CLI 参数解析** — `-p`、`-c`、`-r`、`-m`、`--max-turns`、`-h`、`-v`
+- **非交互打印模式**（`-p`）
+- **`--dangerously-skip-permissions`**
