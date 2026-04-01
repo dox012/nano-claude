@@ -29,17 +29,103 @@ import { buildSystemPrompt } from "./prompt.js";
 // buildSystemPrompt is also used in handleCommand for memory updates
 import { renderMarkdown } from "./render.js";
 import { classifyToolRisk, askPermission } from "./permissions.js";
-import { newSessionId, saveSession, loadSession, printSessionList } from "./session.js";
+import { newSessionId, saveSession, loadSession, listSessions, printSessionList } from "./session.js";
 import { smartCompact, shouldAutoCompact, estimateTokens } from "./compact.js";
 import { saveMemory, deleteMemory, printMemories } from "./memory.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.7.0";
+const VERSION = "1.2.0";
+
+// ── CLI argument parsing ──
+
+interface CliArgs {
+  print: boolean;         // -p, --print: non-interactive mode
+  continue_: boolean;     // -c, --continue: resume most recent session
+  resume?: string;        // -r, --resume <id>: resume specific session
+  model?: string;         // -m, --model <model>: model override
+  maxTurns?: number;      // --max-turns <n>: max agentic turns (with --print)
+  prompt?: string;        // positional: inline prompt
+  dangerouslySkipPermissions: boolean; // --dangerously-skip-permissions
+  help: boolean;          // -h, --help
+  version: boolean;       // -v, --version
+}
+
+function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = { print: false, continue_: false, dangerouslySkipPermissions: false, help: false, version: false };
+  const positional: string[] = [];
+  let i = 0;
+
+  while (i < argv.length) {
+    const arg = argv[i]!;
+    switch (arg) {
+      case "-p": case "--print":
+        args.print = true; break;
+      case "-c": case "--continue":
+        args.continue_ = true; break;
+      case "-r": case "--resume":
+        args.resume = argv[++i]; break;
+      case "-m": case "--model":
+        args.model = argv[++i]; break;
+      case "--max-turns":
+        args.maxTurns = parseInt(argv[++i] || "0", 10); break;
+      case "--dangerously-skip-permissions":
+        args.dangerouslySkipPermissions = true; break;
+      case "-h": case "--help":
+        args.help = true; break;
+      case "-v": case "--version":
+        args.version = true; break;
+      default:
+        if (arg.startsWith("-")) {
+          console.error(chalk.red(`Unknown flag: ${arg}`));
+          process.exit(1);
+        }
+        positional.push(arg);
+    }
+    i++;
+  }
+
+  if (positional.length > 0) args.prompt = positional.join(" ");
+  return args;
+}
+
+function printHelp() {
+  console.log(`
+${chalk.bold.cyan("nano-claude")} ${chalk.dim(`v${VERSION}`)} — lightweight Claude Code reimplementation
+
+${chalk.bold("Usage:")}
+  nano-claude [options] [prompt]
+
+${chalk.bold("Options:")}
+  -p, --print          Non-interactive mode (output text only, then exit)
+  -c, --continue       Continue most recent conversation
+  -r, --resume <id>    Resume a specific session by ID
+  -m, --model <model>  Override the model name
+  --max-turns <n>      Maximum agentic turns (default: unlimited, useful with -p)
+  --dangerously-skip-permissions  Skip all permission prompts (use with caution)
+  -h, --help           Show this help
+  -v, --version        Show version
+
+${chalk.bold("Examples:")}
+  nano-claude                          # interactive REPL
+  nano-claude "explain this project"   # interactive with initial prompt
+  nano-claude -p "list all TODOs"      # non-interactive, print result and exit
+  nano-claude -c                       # continue last conversation
+  nano-claude -r 20250401-120000-ab12  # resume specific session
+  nano-claude -m claude-sonnet-4-20250514 "hello"
+
+${chalk.bold("Environment:")}
+  ANTHROPIC_API_KEY      API key (or set in .env)
+  ANTHROPIC_BASE_URL     API base URL for proxies
+  ANTHROPIC_MODEL        Default model name
+`);
+}
+
+const cliArgs = parseArgs(process.argv.slice(2));
 
 // ── Config ──
 
 const config: Config = {
-  model: process.env.ANTHROPIC_MODEL || "ppio/pa/claude-opus-4-6",
+  model: cliArgs.model || process.env.ANTHROPIC_MODEL || "ppio/pa/claude-opus-4-6",
   maxTokens: 16384,
   systemPrompt: "", // built at startup
 };
@@ -50,17 +136,78 @@ const messages: Message[] = [];
 let totalInput = 0;
 let totalOutput = 0;
 let sessionId = newSessionId();
+let maxTurns = cliArgs.maxTurns ?? Infinity;
 
 // ── REPL ──
 
 async function main() {
-  config.systemPrompt = buildSystemPrompt();
+  // Handle --help and --version early
+  if (cliArgs.help) { printHelp(); process.exit(0); }
+  if (cliArgs.version) { console.log(VERSION); process.exit(0); }
 
+  config.systemPrompt = buildSystemPrompt();
   const client = createClient(config);
 
   // Initialize sub-agent tool with client reference
   initAgentTool(client, config.model, config.systemPrompt);
 
+  // Handle --continue: load most recent session
+  if (cliArgs.continue_) {
+    const sessions = listSessions(1);
+    if (sessions.length > 0) {
+      const session = loadSession(sessions[0]!.id);
+      if (session) {
+        messages.push(...session.messages);
+        totalInput = session.totalInput;
+        totalOutput = session.totalOutput;
+        sessionId = session.id;
+        config.model = cliArgs.model || session.model;
+        if (!cliArgs.print) {
+          console.log(chalk.green(`  Resumed session ${session.id} (${session.messageCount} messages)`));
+        }
+      }
+    } else if (!cliArgs.print) {
+      console.log(chalk.dim("  No sessions to continue."));
+    }
+  }
+
+  // Handle --resume <id>
+  if (cliArgs.resume) {
+    const session = loadSession(cliArgs.resume);
+    if (!session) {
+      console.error(chalk.red(`Session not found: ${cliArgs.resume}`));
+      process.exit(1);
+    }
+    messages.push(...session.messages);
+    totalInput = session.totalInput;
+    totalOutput = session.totalOutput;
+    sessionId = session.id;
+    config.model = cliArgs.model || session.model;
+    if (!cliArgs.print) {
+      console.log(chalk.green(`  Resumed session ${session.id} (${session.messageCount} messages)`));
+    }
+  }
+
+  // ── Print mode (non-interactive) ──
+  if (cliArgs.print) {
+    if (!cliArgs.prompt && !cliArgs.continue_ && !cliArgs.resume) {
+      console.error(chalk.red("Error: --print requires a prompt or --continue/--resume"));
+      process.exit(1);
+    }
+    if (cliArgs.prompt) {
+      messages.push({ role: "user", content: cliArgs.prompt });
+    }
+    try {
+      await runConversationLoop(client);
+    } catch (err: any) {
+      console.error(err.message || err);
+      process.exit(1);
+    }
+    saveSession(sessionId, messages, config.model, totalInput, totalOutput);
+    process.exit(0);
+  }
+
+  // ── Interactive REPL ──
   console.log(
     chalk.bold.cyan("\n  nano-claude") +
       chalk.dim(` v${VERSION}`) +
@@ -73,6 +220,19 @@ async function main() {
     output: process.stdout,
     prompt: chalk.green("You: "),
   });
+
+  // If there's an inline prompt, send it immediately
+  if (cliArgs.prompt) {
+    console.log(chalk.green("You: ") + cliArgs.prompt);
+    messages.push({ role: "user", content: cliArgs.prompt });
+    try {
+      await runConversationLoop(client);
+    } catch (err: any) {
+      console.error(chalk.red(`\nError: ${err.message || err}`));
+    }
+    saveSession(sessionId, messages, config.model, totalInput, totalOutput);
+    console.log();
+  }
 
   rl.prompt();
 
@@ -114,26 +274,32 @@ async function main() {
 
 // ── Core loop: call API, execute tools, repeat ──
 
-async function runConversationLoop(client: ReturnType<typeof createClient>, rl: readline.Interface) {
+async function runConversationLoop(client: ReturnType<typeof createClient>, rl?: readline.Interface) {
   const toolMap = new Map(allTools.map((t) => [t.name, t]));
+  let turns = 0;
 
   while (true) {
+    if (turns >= maxTurns) {
+      if (!cliArgs.print) console.log(chalk.yellow(`\n  [max-turns] Reached limit of ${maxTurns}`));
+      break;
+    }
+    turns++;
     // Auto-compact if context is getting large
     if (shouldAutoCompact(messages)) {
-      console.log(chalk.yellow("\n  [auto-compact] Context window filling up..."));
+      if (!cliArgs.print) console.log(chalk.yellow("\n  [auto-compact] Context window filling up..."));
       try {
         const { compacted, saved } = await smartCompact(client, config, messages);
         messages.length = 0;
         messages.push(...compacted);
-        console.log(chalk.yellow(`  [auto-compact] Saved ${saved} messages`));
+        if (!cliArgs.print) console.log(chalk.yellow(`  [auto-compact] Saved ${saved} messages`));
       } catch (err: any) {
-        console.log(chalk.red(`  [auto-compact failed] ${err.message}`));
+        if (!cliArgs.print) console.log(chalk.red(`  [auto-compact failed] ${err.message}`));
       }
     }
 
     // Buffer streamed text for markdown rendering
     let textBuffer = "";
-    process.stdout.write(chalk.blue("\nAssistant: "));
+    if (!cliArgs.print) process.stdout.write(chalk.blue("\nAssistant: "));
 
     const response = await streamMessage(
       client,
@@ -142,12 +308,16 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
       allTools,
       (delta) => {
         textBuffer += delta;
-        process.stdout.write(delta);
+        if (cliArgs.print) {
+          process.stdout.write(delta);
+        } else {
+          process.stdout.write(delta);
+        }
       },
     );
 
     // Re-render with markdown formatting if there was text output
-    if (textBuffer.trim()) {
+    if (textBuffer.trim() && !cliArgs.print) {
       // Move cursor up and clear the raw streamed text, replace with rendered
       const rawLines = textBuffer.split("\n").length;
       process.stdout.write("\r\x1b[K"); // clear current line
@@ -155,6 +325,8 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
         process.stdout.write("\x1b[A\x1b[K"); // move up + clear
       }
       console.log(chalk.blue("Assistant:\n") + renderMarkdown(textBuffer));
+    } else if (textBuffer.trim() && cliArgs.print) {
+      process.stdout.write("\n");
     }
 
     totalInput += response.usage.input;
@@ -175,11 +347,13 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
 
     for (const tu of toolUses) {
       const tool = toolMap.get(tu.name);
-      console.log(
-        chalk.dim(`\n  [tool] `) +
-          chalk.yellow(tu.name) +
-          chalk.dim(` ${formatToolInput(tu)}`)
-      );
+      if (!cliArgs.print) {
+        console.log(
+          chalk.dim(`\n  [tool] `) +
+            chalk.yellow(tu.name) +
+            chalk.dim(` ${formatToolInput(tu)}`)
+        );
+      }
 
       if (!tool) {
         toolResults.push({
@@ -195,9 +369,10 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
       const toolInput = tu.input as Record<string, unknown>;
       const risk = classifyToolRisk(tu.name, toolInput);
       if (risk !== "safe") {
-        const allowed = await askPermission(rl, tu.name, toolInput, risk);
+        // In print mode, auto-allow all tools (non-interactive)
+        const allowed = (cliArgs.print || cliArgs.dangerouslySkipPermissions) ? true : await askPermission(rl!, tu.name, toolInput, risk);
         if (!allowed) {
-          console.log(chalk.red("  [denied]"));
+          if (!cliArgs.print) console.log(chalk.red("  [denied]"));
           toolResults.push({
             type: "tool_result",
             tool_use_id: tu.id,
@@ -214,7 +389,7 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
           ? result.slice(0, 40_000) + "\n...[truncated]...\n" + result.slice(-40_000)
           : result;
 
-        console.log(chalk.dim(`  [result] ${truncated.split("\n").length} lines`));
+        if (!cliArgs.print) console.log(chalk.dim(`  [result] ${truncated.split("\n").length} lines`));
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
@@ -222,7 +397,7 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
         });
       } catch (err: any) {
         const errMsg = err.message || String(err);
-        console.log(chalk.red(`  [error] ${errMsg}`));
+        if (!cliArgs.print) console.log(chalk.red(`  [error] ${errMsg}`));
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
@@ -332,6 +507,7 @@ async function handleCommand(input: string, client: Anthropic) {
     case "/memory":
       printMemories();
       break;
+
 
     case "/sessions":
       printSessionList();

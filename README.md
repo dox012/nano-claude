@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.7.0 — Sub-Agent
+# nano-claude v8 — CLI Arguments
 
-**~1,780 lines of TypeScript, 18 files.**
+**~2,000 lines of TypeScript, 19 files.**
 
 ## Quick Start
 
@@ -13,12 +13,8 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v6)
+## What's New (vs v7)
 
-- **`src/tools/agent.ts`** — Sub-agent spawning
-- Isolated read-only child conversations
-- Max 20 turns per sub-agent
-
-## What's Next
-
-**v8** adds CLI arguments.
+- **CLI argument parsing** — `-p`, `-c`, `-r`, `-m`, `--max-turns`, `-h`, `-v`
+- **Non-interactive print mode** (`-p`)
+- **`--dangerously-skip-permissions`**
