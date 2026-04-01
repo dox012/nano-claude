@@ -1,8 +1,8 @@
 [English](./README.md) | **中文**
 
-# nano-claude v0.3.0 — 权限确认系统
+# nano-claude v0.4.0 — 会话持久化
 
-**约 1,140 行 TypeScript，14 个文件。**
+**约 1,320 行 TypeScript，15 个文件。**
 
 ## 快速开始
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## 本版本新增（相比 v2）
+## 本版本新增（相比 v3）
 
-- **`src/permissions.ts`** — 工具风险分级 + 确认
-- **三级风险**：安全、写入、危险
-- **基于正则的 bash 命令分类**
+- **`src/session.ts`** — 会话保存/加载/列表
+- 每轮对话后自动保存
+- **`/sessions`** 和 **`/resume`** 命令
 
 ## 下一步
 
-**v4** 添加会话持久化。
+**v5** 添加智能对话压缩。
