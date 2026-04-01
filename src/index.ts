@@ -273,6 +273,13 @@ async function main() {
 }
 
 // ── Core loop: call API, execute tools, repeat ──
+//
+// This is the heart of an agentic coding assistant. The loop works because
+// Claude's API uses a stateless request/response model — each call returns
+// either text (done) or tool_use blocks (need to execute and continue).
+// Tool results are appended as "user" messages because the Anthropic API
+// models tool results as user-provided context, not assistant output.
+// The loop naturally terminates when the model returns no tool_use blocks.
 
 async function runConversationLoop(client: ReturnType<typeof createClient>, rl?: readline.Interface) {
   const toolMap = new Map(allTools.map((t) => [t.name, t]));
@@ -297,7 +304,10 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl?:
       }
     }
 
-    // Buffer streamed text for markdown rendering
+    // Two-pass rendering: first stream raw text for instant feedback,
+    // then erase it with ANSI escape codes and re-render with markdown
+    // formatting (bold, code blocks, etc.). This gives low latency while
+    // still producing styled output.
     let textBuffer = "";
     if (!cliArgs.print) process.stdout.write(chalk.blue("\nAssistant: "));
 

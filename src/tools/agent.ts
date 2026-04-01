@@ -3,6 +3,18 @@ import chalk from "chalk";
 import type { Tool } from "../types.js";
 
 // ── Sub-agent tool: spawns a new conversation with a focused task ──
+//
+// Why sub-agents? They enable parallel research without blocking the main
+// conversation. The main loop can delegate "go read these 10 files and summarize"
+// to a sub-agent while continuing to interact with the user.
+//
+// Key design decisions:
+// - Read-only tools only (Read/Glob/Grep) — prevents unsupervised file mutations
+// - No streaming — sub-agents run non-interactively in the background
+// - No permission checks — since all tools are safe, no user prompts needed
+// - 20-turn hard cap — prevents runaway loops from consuming unbounded API credits
+// - Separate message history — sub-agent context is isolated from the main conversation
+// - Inherits parent's system prompt — so it understands the project context
 
 // These are set by index.ts at startup
 let _client: Anthropic | null = null;

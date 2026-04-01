@@ -46,6 +46,12 @@ export async function streamMessage(
   let inputTokens = 0;
   let outputTokens = 0;
 
+  // The Anthropic streaming API sends events as Server-Sent Events (SSE).
+  // Text arrives as small `text_delta` chunks for real-time display.
+  // Tool inputs arrive as `input_json_delta` — partial JSON fragments that
+  // must be accumulated and parsed on `content_block_stop`. We use a temporary
+  // `_partialJson` property (not in SDK types, hence `as any`) because the SDK
+  // doesn't expose a mutable accumulator for streaming tool input.
   for await (const event of stream) {
     switch (event.type) {
       case "message_start":
