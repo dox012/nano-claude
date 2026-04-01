@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.2.0 — Markdown Rendering
+# nano-claude v0.3.0 — Permission System
 
-**~1,020 lines of TypeScript, 13 files.**
+**~1,140 lines of TypeScript, 14 files.**
 
 ## Quick Start
 
@@ -13,11 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v1)
+## What's New (vs v2)
 
-- **`src/render.ts`** — Markdown-to-terminal renderer
-- **Two-pass rendering** — stream raw text first, then re-render with formatting
+- **`src/permissions.ts`** — Tool risk classification + confirmation
+- **Three risk levels**: safe, write, destructive
+- **Regex-based bash command classification**
 
 ## What's Next
 
-**v3** adds a permission system.
+**v4** adds session persistence.
