@@ -24,6 +24,7 @@ import chalk from "chalk";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, streamMessage } from "./api.js";
 import { allTools } from "./tools/index.js";
+import { initAgentTool } from "./tools/agent.js";
 import { buildSystemPrompt } from "./prompt.js";
 // buildSystemPrompt is also used in handleCommand for memory updates
 import { renderMarkdown } from "./render.js";
@@ -33,7 +34,7 @@ import { smartCompact, shouldAutoCompact, estimateTokens } from "./compact.js";
 import { saveMemory, deleteMemory, printMemories } from "./memory.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.6.0";
+const VERSION = "0.7.0";
 
 // ── Config ──
 
@@ -56,6 +57,9 @@ async function main() {
   config.systemPrompt = buildSystemPrompt();
 
   const client = createClient(config);
+
+  // Initialize sub-agent tool with client reference
+  initAgentTool(client, config.model, config.systemPrompt);
 
   console.log(
     chalk.bold.cyan("\n  nano-claude") +
