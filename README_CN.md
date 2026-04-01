@@ -1,8 +1,8 @@
 [English](./README.md) | **中文**
 
-# nano-claude v0.6.0 — 记忆系统
+# nano-claude v0.7.0 — 子代理
 
-**约 1,630 行 TypeScript，17 个文件。**
+**约 1,780 行 TypeScript，18 个文件。**
 
 ## 快速开始
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## 本版本新增（相比 v5）
+## 本版本新增（相比 v6）
 
-- **`src/memory.ts`** — 持久化键值记忆
-- **多层级 CLAUDE.md** — 四级加载
-- **`/remember`**、**`/forget`**、**`/memory`** 命令
+- **`src/tools/agent.ts`** — 子代理生成
+- 隔离的只读子对话
+- 每个子代理最多 20 轮
 
 ## 下一步
 
-**v7** 添加子代理工具。
+**v8** 添加 CLI 参数。

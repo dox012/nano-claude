@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.6.0 — Memory System
+# nano-claude v0.7.0 — Sub-Agent
 
-**~1,630 lines of TypeScript, 17 files.**
+**~1,780 lines of TypeScript, 18 files.**
 
 ## Quick Start
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v5)
+## What's New (vs v6)
 
-- **`src/memory.ts`** — Persistent key-value memory
-- **Multi-level CLAUDE.md** — four-level loading
-- **`/remember`**, **`/forget`**, **`/memory`** commands
+- **`src/tools/agent.ts`** — Sub-agent spawning
+- Isolated read-only child conversations
+- Max 20 turns per sub-agent
 
 ## What's Next
 
-**v7** adds a sub-agent tool.
+**v8** adds CLI arguments.
