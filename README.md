@@ -4,6 +4,8 @@
 
 **~2,000 lines of TypeScript, 19 files.**
 
+> **New here?** Read the [Learning Guide](./docs/LEARNING_GUIDE.md) for a step-by-step walkthrough of every version.
+
 ## Quick Start
 
 ```bash
