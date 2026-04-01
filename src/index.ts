@@ -21,15 +21,17 @@ loadEnv();
 
 import readline from "readline";
 import chalk from "chalk";
+import Anthropic from "@anthropic-ai/sdk";
 import { createClient, streamMessage } from "./api.js";
 import { allTools } from "./tools/index.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { renderMarkdown } from "./render.js";
 import { classifyToolRisk, askPermission } from "./permissions.js";
 import { newSessionId, saveSession, loadSession, printSessionList } from "./session.js";
+import { smartCompact, shouldAutoCompact, estimateTokens } from "./compact.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 
 // ── Config ──
 
@@ -77,7 +79,7 @@ async function main() {
 
     // Slash commands
     if (input.startsWith("/")) {
-      handleCommand(input);
+      await handleCommand(input, client);
       rl.prompt();
       return;
     }
@@ -110,6 +112,19 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
   const toolMap = new Map(allTools.map((t) => [t.name, t]));
 
   while (true) {
+    // Auto-compact if context is getting large
+    if (shouldAutoCompact(messages)) {
+      console.log(chalk.yellow("\n  [auto-compact] Context window filling up..."));
+      try {
+        const { compacted, saved } = await smartCompact(client, config, messages);
+        messages.length = 0;
+        messages.push(...compacted);
+        console.log(chalk.yellow(`  [auto-compact] Saved ${saved} messages`));
+      } catch (err: any) {
+        console.log(chalk.red(`  [auto-compact failed] ${err.message}`));
+      }
+    }
+
     // Buffer streamed text for markdown rendering
     let textBuffer = "";
     process.stdout.write(chalk.blue("\nAssistant: "));
@@ -218,7 +233,7 @@ async function runConversationLoop(client: ReturnType<typeof createClient>, rl: 
 
 // ── Slash commands ──
 
-function handleCommand(input: string) {
+async function handleCommand(input: string, client: Anthropic) {
   const cmd = input.split(/\s+/)[0]!.toLowerCase();
 
   switch (cmd) {
@@ -247,23 +262,19 @@ function handleCommand(input: string) {
 
     case "/compact": {
       const msgCount = messages.length;
-      if (msgCount <= 2) {
+      if (msgCount <= 4) {
         console.log(chalk.dim("Nothing to compact."));
         break;
       }
-      // Simple compaction: keep system context and last 4 messages
-      const keep = messages.slice(-4);
-      messages.length = 0;
-      messages.push({
-        role: "user",
-        content: "(Previous conversation was compacted to save context)",
-      });
-      messages.push({
-        role: "assistant",
-        content: [{ type: "text", text: "Understood, continuing from the compacted context." }],
-      });
-      messages.push(...keep);
-      console.log(chalk.yellow(`Compacted: ${msgCount} → ${messages.length} messages`));
+      try {
+        const { compacted, saved } = await smartCompact(client, config, messages);
+        messages.length = 0;
+        messages.push(...compacted);
+        const tokens = estimateTokens(messages);
+        console.log(chalk.yellow(`Compacted: ${msgCount} → ${messages.length} messages (~${tokens} tokens)`));
+      } catch (err: any) {
+        console.log(chalk.red(`Compact failed: ${err.message}`));
+      }
       break;
     }
 

@@ -1,8 +1,8 @@
 [English](./README.md) | **中文**
 
-# nano-claude v0.4.0 — 会话持久化
+# nano-claude v0.5.0 — 上下文压缩
 
-**约 1,320 行 TypeScript，15 个文件。**
+**约 1,450 行 TypeScript，16 个文件。**
 
 ## 快速开始
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## 本版本新增（相比 v3）
+## 本版本新增（相比 v4）
 
-- **`src/session.ts`** — 会话保存/加载/列表
-- 每轮对话后自动保存
-- **`/sessions`** 和 **`/resume`** 命令
+- **`src/compact.ts`** — 智能对话压缩
+- Token 估算 + 75% 时自动压缩
+- 模型驱动的摘要
 
 ## 下一步
 
-**v5** 添加智能对话压缩。
+**v6** 添加 CLAUDE.md + 持久记忆。
