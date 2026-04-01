@@ -4,6 +4,8 @@
 
 **约 2,000 行 TypeScript，19 个文件。**
 
+> **新手？** 阅读[学习指南](./docs/LEARNING_GUIDE_CN.md)，逐版本了解每个概念。
+
 ## 快速开始
 
 ```bash
