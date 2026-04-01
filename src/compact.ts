@@ -2,7 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import chalk from "chalk";
 import type { Message, Config } from "./types.js";
 
-// ── Token estimation (rough: 1 token ≈ 4 chars) ──
+// ── Token estimation ──
+// Rough heuristic: 1 token ≈ 4 characters for English text.
+// OpenAI and Anthropic tokenizers average 3.5-4.5 chars/token for code and
+// English prose. We use 4 as a conservative middle ground — slightly over-
+// counting is safer than under-counting for auto-compact decisions.
 
 export function estimateTokens(messages: Message[]): number {
   let chars = 0;
@@ -32,7 +36,9 @@ export async function smartCompact(
     return { compacted: messages, saved: 0 };
   }
 
-  // Keep the last 2 messages intact (recent context)
+  // Keep the last 2 messages intact — these contain the most recent user request
+  // and assistant response, which are critical for conversational continuity.
+  // Everything before is summarized by the model into a single compact message.
   const toSummarize = messages.slice(0, -2);
   const keep = messages.slice(-2);
 
@@ -91,7 +97,10 @@ Respond with ONLY the summary, no preamble.`,
 
 export function shouldAutoCompact(messages: Message[], maxContextTokens = 150_000): boolean {
   const estimated = estimateTokens(messages);
-  return estimated > maxContextTokens * 0.75; // compact at 75% capacity
+  // Trigger at 75% capacity — leaves a 25% buffer so the model can still
+  // generate a full response + tool calls before hitting the context limit.
+  // Too low wastes context; too high risks truncation mid-conversation.
+  return estimated > maxContextTokens * 0.75;
 }
 
 // ── Serialize messages for summarization ──

@@ -2,6 +2,17 @@ import type readline from "readline";
 import chalk from "chalk";
 
 // ── Bash command risk classification ──
+//
+// Two-tier risk model inspired by Claude Code's permission system:
+// - "write" = modifies state but is reversible (git commit, npm install, rm file)
+//   → asks for user confirmation with a yellow warning
+// - "destructive" = hard or impossible to reverse (rm -rf, git reset --hard, DROP TABLE)
+//   → asks with a red warning, should make the user think twice
+// - "safe" = read-only commands (ls, cat, grep) → no confirmation needed
+//
+// The classification is intentionally conservative: `rm` alone is "write" because
+// single-file deletion is recoverable, but `rm -rf` is "destructive" because
+// recursive force-deletion can wipe entire directories.
 
 export type RiskLevel = "safe" | "write" | "destructive";
 
