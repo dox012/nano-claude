@@ -25,9 +25,10 @@ import { createClient, streamMessage } from "./api.js";
 import { allTools } from "./tools/index.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { renderMarkdown } from "./render.js";
+import { classifyToolRisk, askPermission } from "./permissions.js";
 import type { Message, ToolUseBlock, ToolResultBlockParam, Config } from "./types.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 // ── Config ──
 
@@ -83,7 +84,7 @@ async function main() {
     messages.push({ role: "user", content: input });
 
     try {
-      await runConversationLoop(client);
+      await runConversationLoop(client, rl);
     } catch (err: any) {
       console.error(chalk.red(`\nError: ${err.message || err}`));
     }
@@ -100,7 +101,7 @@ async function main() {
 
 // ── Core loop: call API, execute tools, repeat ──
 
-async function runConversationLoop(client: ReturnType<typeof createClient>) {
+async function runConversationLoop(client: ReturnType<typeof createClient>, rl: readline.Interface) {
   const toolMap = new Map(allTools.map((t) => [t.name, t]));
 
   while (true) {
@@ -164,8 +165,25 @@ async function runConversationLoop(client: ReturnType<typeof createClient>) {
         continue;
       }
 
+      // Permission check
+      const toolInput = tu.input as Record<string, unknown>;
+      const risk = classifyToolRisk(tu.name, toolInput);
+      if (risk !== "safe") {
+        const allowed = await askPermission(rl, tu.name, toolInput, risk);
+        if (!allowed) {
+          console.log(chalk.red("  [denied]"));
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tu.id,
+            content: "Permission denied by user.",
+            is_error: true,
+          });
+          continue;
+        }
+      }
+
       try {
-        const result = await tool.call(tu.input as Record<string, unknown>);
+        const result = await tool.call(toolInput);
         const truncated = result.length > 80_000
           ? result.slice(0, 40_000) + "\n...[truncated]...\n" + result.slice(-40_000)
           : result;
