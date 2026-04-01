@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.4.0 — Session Persistence
+# nano-claude v0.5.0 — Context Compaction
 
-**~1,320 lines of TypeScript, 15 files.**
+**~1,450 lines of TypeScript, 16 files.**
 
 ## Quick Start
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v3)
+## What's New (vs v4)
 
-- **`src/session.ts`** — Session save/load/list
-- Auto-save after every turn
-- **`/sessions`** and **`/resume`** commands
+- **`src/compact.ts`** — Smart conversation compaction
+- Token estimation + auto-compact at 75% capacity
+- Model-powered summarization
 
 ## What's Next
 
-**v5** adds smart conversation compaction.
+**v6** adds CLAUDE.md + persistent memory.
