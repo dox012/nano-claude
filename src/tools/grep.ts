@@ -66,21 +66,20 @@ export const GrepTool: Tool = {
       }
       return output.trim() || "No matches found.";
     } catch (err: any) {
-      if (err.status === 1) return "No matches found.";
-      // rg not found, try grep
-      if (err.message?.includes("ENOENT") || err.message?.includes("not found")) {
-        try {
-          const grepCmd = `grep -rn --include='${glob || "*"}' '${escaped}' '${searchPath}' | head -200`;
-          const output = execSync(grepCmd, {
-            encoding: "utf-8",
-            timeout: 30_000,
-          });
-          return output.trim() || "No matches found.";
-        } catch {
-          return "No matches found.";
-        }
+      // rg exit code 1 = no matches (if stderr is empty).
+      // On Windows, a missing `rg` also returns status 1 but with stderr output.
+      if (err.status === 1 && !err.stderr?.trim()) return "No matches found.";
+      // rg not found or other error — fall back to grep.
+      try {
+        const grepCmd = `grep -rn --include='${glob || "*"}' '${escaped}' '${searchPath}' | head -200`;
+        const output = execSync(grepCmd, {
+          encoding: "utf-8",
+          timeout: 30_000,
+        });
+        return output.trim() || "No matches found.";
+      } catch {
+        return "No matches found.";
       }
-      return `Search error: ${err.message || err}`;
     }
   },
 };
