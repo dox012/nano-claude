@@ -1,8 +1,8 @@
 [English](./README.md) | **中文**
 
-# nano-claude v0.5.0 — 上下文压缩
+# nano-claude v0.6.0 — 记忆系统
 
-**约 1,450 行 TypeScript，16 个文件。**
+**约 1,630 行 TypeScript，17 个文件。**
 
 ## 快速开始
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## 本版本新增（相比 v4）
+## 本版本新增（相比 v5）
 
-- **`src/compact.ts`** — 智能对话压缩
-- Token 估算 + 75% 时自动压缩
-- 模型驱动的摘要
+- **`src/memory.ts`** — 持久化键值记忆
+- **多层级 CLAUDE.md** — 四级加载
+- **`/remember`**、**`/forget`**、**`/memory`** 命令
 
 ## 下一步
 
-**v6** 添加 CLAUDE.md + 持久记忆。
+**v7** 添加子代理工具。

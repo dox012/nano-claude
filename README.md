@@ -1,8 +1,8 @@
 **English** | [中文](./README_CN.md)
 
-# nano-claude v0.5.0 — Context Compaction
+# nano-claude v0.6.0 — Memory System
 
-**~1,450 lines of TypeScript, 16 files.**
+**~1,630 lines of TypeScript, 17 files.**
 
 ## Quick Start
 
@@ -13,12 +13,12 @@ cp .env.example .env
 npm run dev
 ```
 
-## What's New (vs v4)
+## What's New (vs v5)
 
-- **`src/compact.ts`** — Smart conversation compaction
-- Token estimation + auto-compact at 75% capacity
-- Model-powered summarization
+- **`src/memory.ts`** — Persistent key-value memory
+- **Multi-level CLAUDE.md** — four-level loading
+- **`/remember`**, **`/forget`**, **`/memory`** commands
 
 ## What's Next
 
-**v6** adds CLAUDE.md + persistent memory.
+**v7** adds a sub-agent tool.
