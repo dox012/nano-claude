@@ -22,7 +22,7 @@
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env        # Windows CMD: copy .env.example .env
 # 编辑 .env 填入你的 API key
 npm run dev
 ```
