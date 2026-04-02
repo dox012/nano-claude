@@ -2,6 +2,3 @@ node_modules/
 dist/
 .env
 package-lock.json
-chat.md
-compare.md
-hello.txt
