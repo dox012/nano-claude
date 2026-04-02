@@ -22,7 +22,7 @@ A lightweight, incremental reimplementation of [Claude Code](https://docs.anthro
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.example .env        # Windows CMD: copy .env.example .env
 # Edit .env with your API key
 npm run dev
 ```
