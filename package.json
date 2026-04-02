@@ -1,0 +1,23 @@
+{
+  "name": "nano-claude",
+  "version": "0.0.0",
+  "description": "Minimal chatbot baseline - just a streaming REPL with Claude",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "nano-claude": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node --enable-source-maps dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
