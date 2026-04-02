@@ -5,12 +5,12 @@
 A step-by-step walkthrough of how to build an agentic coding assistant from scratch. Each version introduces one concept — read the code at that tag, then come back here for the "why."
 
 ```bash
-git checkout v0.1.0   # start here and follow along
+git checkout v1   # start here and follow along
 ```
 
 ---
 
-## v0.1.0 — The Agentic Tool-Use Loop
+## v1 — The Agentic Tool-Use Loop
 
 **The problem:** How do you turn a language model into a coding assistant that can actually *do* things?
 
@@ -40,11 +40,11 @@ The model never directly runs code. It returns structured `tool_use` blocks sayi
 | Glob | Find files by pattern | Navigate unfamiliar codebases |
 | Grep | Search file contents | Find where something is defined/used |
 
-**Try it:** Check out `v0.1.0`, remove the Grep tool from `allTools`, and watch how the model adapts — it'll fall back to `Bash` with `grep` commands. This shows the model's flexibility.
+**Try it:** Check out `v1`, remove the Grep tool from `allTools`, and watch how the model adapts — it'll fall back to `Bash` with `grep` commands. This shows the model's flexibility.
 
 ---
 
-## v0.2.0 — Multi-Provider + Markdown Rendering
+## v2 — Multi-Provider + Markdown Rendering
 
 **The problem:** Not everyone uses Anthropic's API directly. Proxies, gateways, and alternative endpoints need to work. And raw text output is ugly in a terminal.
 
@@ -68,7 +68,7 @@ new Anthropic({
 
 ---
 
-## v0.3.0 — Permission Confirmation + Bash Safety
+## v3 — Permission Confirmation + Bash Safety
 
 **The problem:** An AI that can run `rm -rf /` without asking is a disaster waiting to happen.
 
@@ -91,7 +91,7 @@ Bash commands are classified by regex pattern matching. The distinction between 
 
 ---
 
-## v0.4.0 — Session Persistence + Resume
+## v4 — Session Persistence + Resume
 
 **The problem:** Close the terminal, lose the entire conversation. For long coding sessions, this is unacceptable.
 
@@ -107,7 +107,7 @@ Bash commands are classified by regex pattern matching. The distinction between 
 
 ---
 
-## v0.5.0 — Smart Conversation Compaction
+## v5 — Smart Conversation Compaction
 
 **The problem:** Claude has a context window limit (~200K tokens). Long coding sessions with lots of tool calls will eventually overflow it.
 
@@ -124,11 +124,11 @@ Bash commands are classified by regex pattern matching. The distinction between 
 **Files to read:**
 - `src/compact.ts` — `smartCompact()`, `shouldAutoCompact()`, `estimateTokens()`
 
-**Try it:** Use `/context` to watch your token usage grow. When it gets large, use `/compact` manually to see the summarization in action.
+**Try it:** Use `/cost` to watch your token usage grow. When it gets large, use `/compact` manually to see the summarization in action.
 
 ---
 
-## v0.6.0 — Multi-Level CLAUDE.md + Memory
+## v6 — Multi-Level CLAUDE.md + Memory
 
 **The problem:** The model doesn't know your project's conventions, tech stack, or preferences. Every conversation starts cold.
 
@@ -154,7 +154,7 @@ All levels are loaded and concatenated. This mirrors how `.gitignore` works — 
 
 ---
 
-## v0.7.0 — Sub-Agent Tool
+## v7 — Sub-Agent Tool
 
 **The problem:** Some tasks require reading 10+ files to gather context before answering. Doing this in the main conversation clutters the context with tool calls.
 
@@ -180,72 +180,9 @@ Main conversation ──[tool_use: Agent]──→ Sub-agent conversation
 
 ---
 
-## v0.8.0 — Plan Mode + Task Tracking
+## v8 — CLI Arguments + Print Mode + Polish
 
-**The problem:** For complex tasks, the model shouldn't just start coding immediately. It should explore first, propose a plan, and get user approval.
-
-**The concept: Two-phase workflow.**
-
-```
-Plan mode:    Explore → Read files → Write plan → Ask for approval
-Execute mode: Implement the approved plan with tool calls
-```
-
-`EnterPlanMode` creates a plan file and signals the model to only read/search. `ExitPlanMode` shows the plan to the user and asks for approval. If rejected, the model revises.
-
-**Task tracking** (`TaskCreate`, `TaskUpdate`, `TaskList`) provides an in-memory todo list. The model breaks complex work into discrete tasks, marks them in-progress/completed, and the user can check status with `/tasks`.
-
-**Files to read:**
-- `src/tools/planTool.ts` — plan mode state machine
-- `src/tools/taskTools.ts` — task CRUD tools
-- `src/tasks.ts` — in-memory task store
-
-**Try it:** Ask the model to "plan a refactoring of this module" and watch it enter plan mode, explore the code, write a plan, and ask for your approval.
-
----
-
-## v0.9.0 — MCP Client Support
-
-**The problem:** 12 built-in tools isn't enough. Users need to extend the tool set with domain-specific capabilities (databases, APIs, custom scripts).
-
-**The concept: Model Context Protocol (MCP).** MCP is an open standard for connecting AI models to external tool servers. nano-claude acts as an MCP *client* — it connects to MCP servers over stdio, discovers their tools, and makes them available to the model.
-
-**How it works:**
-
-```
-nano-claude (client) ←stdio→ MCP server process
-     │                           │
-     ├── listTools() ──────────→ │ returns tool definitions
-     ├── callTool(name, args) ──→│ executes and returns result
-     └── close() ──────────────→ │ cleanup
-```
-
-MCP tools get prefixed as `mcp__<server>__<tool>` to avoid name collisions with built-in tools.
-
-**Files to read:**
-- `src/mcp.ts` — `connectMcpServer()`, `loadMcpConfig()`
-- Config: `.nano-claude/mcp.json`
-
-**Try it:** Install a simple MCP server like `@modelcontextprotocol/server-filesystem`, add it to `.nano-claude/mcp.json`, and restart. The model will now have filesystem tools beyond the built-in ones.
-
----
-
-## v1.0.0 — Polish + Complete Docs
-
-**The problem:** A working prototype isn't a finished project. Documentation, error handling, and edge cases matter.
-
-**What changed:**
-- Complete README with architecture diagrams, tool tables, and comparison with Claude Code
-- Consistent error messages across all tools
-- Edge case handling (empty files, missing directories, circular paths)
-
-**No new concepts** — this version is about production readiness.
-
----
-
-## v1.1.0 — CLI Arguments + Print Mode
-
-**The problem:** An interactive REPL is great for exploration, but scripting and automation need a non-interactive mode.
+**The problem:** An interactive REPL is great for exploration, but scripting and automation need a non-interactive mode. And a working prototype isn't a finished project — documentation, error handling, and edge cases matter.
 
 **The concept:** CLI argument parsing (without external dependencies) enables:
 
@@ -255,9 +192,6 @@ nano-claude -p "list all TODO comments" > todos.txt
 
 # Automation: resume and continue
 nano-claude -c -p "what were we working on?"
-
-# CI/CD: limited turns to prevent runaway
-nano-claude -p --max-turns 5 "run the test suite"
 ```
 
 **Print mode differences:**
@@ -266,34 +200,19 @@ nano-claude -p --max-turns 5 "run the test suite"
 - Auto-allows all tool permissions (non-interactive)
 - Exits after the model finishes
 
+**What else changed:**
+- Complete README with architecture diagrams, tool tables, and comparison with Claude Code
+- Consistent error messages across all tools
+- Edge case handling (empty files, missing directories, circular paths)
+
 **Files to read:**
 - `src/index.ts` — `parseArgs()`, print mode branches throughout `runConversationLoop()`
 
 ---
 
-## v1.2.0 — UX Polish
-
-**The problem:** Small UX gaps add up. Missing commands, unhelpful error messages, and no visual feedback for context usage.
-
-**What's added:**
-
-| Feature | Why it matters |
-|---------|---------------|
-| `/context` | Visual bar showing context window usage — know when compaction is coming |
-| `/diff` | Quick git diff without leaving the conversation |
-| `/copy` | Copy last response to clipboard (cross-platform) |
-| `/export` | Export the full conversation as a markdown file |
-| `/exit` | Graceful exit (instead of Ctrl+C only) |
-| Fuzzy matching | `/hepl` → "Did you mean /help?" (Levenshtein distance ≤ 2) |
-
-**Files to read:**
-- `src/index.ts` — `handleCommand()` new cases, `levenshtein()`, `suggestCommand()`
-
----
-
 ## Architectural Summary
 
-After all 12 versions, the full architecture looks like this:
+After all 8 versions, the full architecture looks like this:
 
 ```
 ┌─ User Input ──────────────────────────────────────┐
@@ -316,14 +235,11 @@ After all 12 versions, the full architecture looks like this:
                ▼
 ┌─ Tools ───────────────────────────────────────────┐
 │  Built-in: Bash Read Write Edit Glob Grep Agent   │
-│  Workflow: TaskCreate TaskUpdate TaskList Plan     │
-│  External: MCP servers (dynamic)                  │
 └──────────────┬────────────────────────────────────┘
                ▼
 ┌─ Persistence ─────────────────────────────────────┐
 │  Sessions (~/.nano-claude/sessions/)              │
 │  Memory   (~/.nano-claude/memory/)                │
-│  Plans    (.nano-claude/plan-*.md)                │
 └───────────────────────────────────────────────────┘
 ```
 
@@ -337,4 +253,4 @@ After all 12 versions, the full architecture looks like this:
 
 4. **Security is about confirmation, not prevention.** The user should always be able to do what they want — the system's job is to make dangerous actions *conscious* choices.
 
-5. **~2,500 lines is enough.** Claude Code has 500K+ lines, but the essential agentic loop is ~30 lines. Everything else is UI, edge cases, and enterprise features. Understanding this core is all you need to build your own.
+5. **~1,900 lines is enough.** Claude Code has 500K+ lines, but the essential agentic loop is ~30 lines. Everything else is UI, edge cases, and enterprise features. Understanding this core is all you need to build your own.
