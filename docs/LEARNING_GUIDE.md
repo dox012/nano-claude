@@ -5,8 +5,32 @@
 A step-by-step walkthrough of how to build an agentic coding assistant from scratch. Each version introduces one concept — read the code at that tag, then come back here for the "why."
 
 ```bash
-git checkout v1   # start here and follow along
+git checkout v0   # start here and follow along
 ```
+
+---
+
+## v0 — Chatbot Baseline
+
+**The problem:** Before building an agent, understand what a plain chatbot looks like — and what it *can't* do.
+
+**The concept:** A chatbot is just a loop: read user input → send to API → stream response → repeat. The entire thing fits in ~80 lines and a single file:
+
+```
+User input → API call (streaming) → print tokens as they arrive → loop
+```
+
+There are no tools. The model can answer questions, but it can't read files, run commands, or modify code. It's stuck inside its own context window.
+
+**Files to read:**
+- `src/index.ts` — the entire chatbot in one file
+
+**What to notice:**
+- The `messages` array accumulates conversation history — this is what makes it multi-turn
+- Streaming uses `client.messages.stream()` and processes `content_block_delta` events
+- The model is *stateless* — the client maintains all state in the messages array
+
+**Try it:** Ask the chatbot to read a file. It can't — it will apologize or hallucinate. This is exactly the limitation that v1 solves.
 
 ---
 
@@ -212,7 +236,7 @@ nano-claude -c -p "what were we working on?"
 
 ## Architectural Summary
 
-After all 8 versions, the full architecture looks like this:
+After all 9 versions (v0–v8), the full architecture looks like this:
 
 ```
 ┌─ User Input ──────────────────────────────────────┐
