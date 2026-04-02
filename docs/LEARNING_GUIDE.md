@@ -68,27 +68,16 @@ The model never directly runs code. It returns structured `tool_use` blocks sayi
 
 ---
 
-## v2 — Multi-Provider + Markdown Rendering
+## v2 — Markdown Rendering
 
-**The problem:** Not everyone uses Anthropic's API directly. Proxies, gateways, and alternative endpoints need to work. And raw text output is ugly in a terminal.
+**The problem:** Raw text output is ugly in a terminal. Code blocks, headings, and inline formatting all look the same.
 
-**The concept: API adapter pattern.** The Anthropic SDK accepts a `baseURL` parameter that redirects all requests to a different endpoint. This one config option enables compatibility with any proxy that speaks the Anthropic API format:
-
-```typescript
-// src/api.ts
-new Anthropic({
-  apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
-  baseURL: config.baseURL || process.env.ANTHROPIC_BASE_URL || undefined,
-});
-```
-
-**Markdown rendering** is a two-pass approach: stream raw text first (for instant feedback), then erase it with ANSI escape codes and re-render with formatting. This gives both low latency and styled output.
+**The concept: Two-pass rendering.** Stream raw text first (for instant feedback), then erase it with ANSI escape codes and re-render with formatting. This gives both low latency and styled output.
 
 **Files to read:**
-- `src/api.ts` — `createClient()` with baseURL support
 - `src/render.ts` — 87-line markdown renderer (code blocks, headers, lists, inline formatting)
 
-**Try it:** Set `ANTHROPIC_BASE_URL` to an invalid URL and observe the error. Then point it at a working proxy to verify the adapter pattern.
+**Try it:** Ask the model to explain some code. Watch how the output first appears as raw text, then gets re-rendered with bold, code blocks, and colors.
 
 ---
 
@@ -204,9 +193,9 @@ Main conversation ──[tool_use: Agent]──→ Sub-agent conversation
 
 ---
 
-## v8 — CLI Arguments + Print Mode + Polish
+## v8 — CLI Arguments + Non-Interactive Mode
 
-**The problem:** An interactive REPL is great for exploration, but scripting and automation need a non-interactive mode. And a working prototype isn't a finished project — documentation, error handling, and edge cases matter.
+**The problem:** An interactive REPL is great for exploration, but scripting and automation need a non-interactive mode.
 
 **The concept:** CLI argument parsing (without external dependencies) enables:
 
@@ -216,6 +205,9 @@ nano-claude -p "list all TODO comments" > todos.txt
 
 # Automation: resume and continue
 nano-claude -c -p "what were we working on?"
+
+# Skip permissions for trusted scripts
+nano-claude --dangerously-skip-permissions "refactor this file"
 ```
 
 **Print mode differences:**
@@ -223,11 +215,6 @@ nano-claude -c -p "what were we working on?"
 - No `[tool]`/`[result]` noise on stderr
 - Auto-allows all tool permissions (non-interactive)
 - Exits after the model finishes
-
-**What else changed:**
-- Complete README with architecture diagrams, tool tables, and comparison with Claude Code
-- Consistent error messages across all tools
-- Edge case handling (empty files, missing directories, circular paths)
 
 **Files to read:**
 - `src/index.ts` — `parseArgs()`, print mode branches throughout `runConversationLoop()`
@@ -277,4 +264,4 @@ After all 9 versions (v0–v8), the full architecture looks like this:
 
 4. **Security is about confirmation, not prevention.** The user should always be able to do what they want — the system's job is to make dangerous actions *conscious* choices.
 
-5. **~1,900 lines is enough.** Claude Code has 500K+ lines, but the essential agentic loop is ~30 lines. Everything else is UI, edge cases, and enterprise features. Understanding this core is all you need to build your own.
+5. **~2,000 lines is enough.** Claude Code has 500K+ lines, but the essential agentic loop is ~30 lines. Everything else is UI, edge cases, and enterprise features. Understanding this core is all you need to build your own.
