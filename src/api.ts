@@ -12,6 +12,16 @@ export interface ApiResponse {
 // ── Create client ──
 
 export function createClient(config: Config): Anthropic {
+  // OrcaRouter is a first-class provider: when an OrcaRouter API key is
+  // supplied, route through OrcaRouter's Anthropic-compatible endpoint.
+  // The SDK appends /v1/messages to the base URL.
+  const orcaRouterKey = process.env.ORCAROUTER_API_KEY;
+  if (orcaRouterKey) {
+    return new Anthropic({
+      apiKey: orcaRouterKey,
+      baseURL: "https://api.orcarouter.ai",
+    });
+  }
   return new Anthropic({
     apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
     baseURL: config.baseURL || process.env.ANTHROPIC_BASE_URL || undefined,

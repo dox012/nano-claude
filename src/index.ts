@@ -117,6 +117,7 @@ ${chalk.bold("Environment:")}
   ANTHROPIC_API_KEY      API key (or set in .env)
   ANTHROPIC_BASE_URL     API base URL for proxies
   ANTHROPIC_MODEL        Default model name
+  ORCAROUTER_API_KEY     OrcaRouter API key (routes through OrcaRouter)
 `);
 }
 
@@ -125,7 +126,12 @@ const cliArgs = parseArgs(process.argv.slice(2));
 // ── Config ──
 
 const config: Config = {
-  model: cliArgs.model || process.env.ANTHROPIC_MODEL || "ppio/pa/claude-opus-4-6",
+  model:
+    cliArgs.model ||
+    process.env.ANTHROPIC_MODEL ||
+    (process.env.ORCAROUTER_API_KEY
+      ? "anthropic/claude-haiku-4.5"
+      : "ppio/pa/claude-opus-4-6"),
   maxTokens: 16384,
   systemPrompt: "", // built at startup
 };

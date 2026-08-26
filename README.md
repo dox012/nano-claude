@@ -27,6 +27,16 @@ cp .env.example .env        # Windows CMD: copy .env.example .env
 npm run dev
 ```
 
+## Using OrcaRouter as a Provider
+
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI-compatible AI gateway built for both models and agents. Like OpenRouter, it exposes a provider/model namespace across many models — and it also combines adaptive routing, automatic failover, zero-markup inference, observability, guardrails, and agent-tool governance behind the same endpoint. To route nano-claude through it, add your key to `.env`:
+
+```bash
+ORCAROUTER_API_KEY=sk-orca-your-key-here
+```
+
+When `ORCAROUTER_API_KEY` is set, nano-claude connects to OrcaRouter's Anthropic-compatible endpoint and defaults to an OrcaRouter-hosted Claude model (`anthropic/claude-haiku-4.5`). Override the model with `-m` or `ANTHROPIC_MODEL`. OrcaRouter also runs gateway-level, zero-trust security for AI agents on the same endpoint — screening every prompt/response and governing every tool call on a default-deny basis, with no application code changes.
+
 ## Version Roadmap
 
 Each version is a **tagged, independently runnable** milestone:

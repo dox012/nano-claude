@@ -27,6 +27,16 @@ cp .env.example .env        # Windows CMD: copy .env.example .env
 npm run dev
 ```
 
+## 使用 OrcaRouter 作为 provider
+
+[OrcaRouter](https://www.orcarouter.ai) 是一个面向模型和 Agent 的 OpenAI 兼容 AI 网关。与 OpenRouter 类似，它在一个端点下暴露跨多个模型的 provider/model 命名空间——同时整合了自适应路由、自动故障转移、零加价推理、可观测性、护栏与 Agent 工具治理。要在 nano-claude 中使用它，请在 `.env` 中填入你的 key：
+
+```bash
+ORCAROUTER_API_KEY=sk-orca-your-key-here
+```
+
+设置 `ORCAROUTER_API_KEY` 后，nano-claude 会连接 OrcaRouter 的 Anthropic 兼容端点，默认使用 OrcaRouter 托管的 Claude 模型（`anthropic/claude-haiku-4.5`）。可用 `-m` 或 `ANTHROPIC_MODEL` 覆盖模型。OrcaRouter 还在同一端点上运行网关级、零信任的 AI Agent 安全——以默认拒绝的方式审查每次 prompt/response 并治理每次工具调用，无需修改任何应用代码。
+
 ## 版本路线图
 
 每个版本都是一个**独立可运行的 git 标签**：
